@@ -4,6 +4,7 @@ pipeline {
 	environment {
 		DEPLOY_DIR = "/Users/duyong/프로젝트/HelloJenkins/deploy/backend"
 		JAR_NAME = "backend-0.0.1-SNAPSHOT.jar"
+		SCREEN_NAME="HelloJenkinsBackend"
 		PORT = 8090
 	}
 	
@@ -39,9 +40,8 @@ pipeline {
 		        # JAR 복사
 		        cp build/libs/\$JAR_NAME \$DEPLOY_DIR/
 		
-		        # 백그라운드에서 안전하게 실행 (setsid 사용)
-		        java -jar \$DEPLOY_DIR/\$JAR_NAME >> \$DEPLOY_DIR/app.log 2>&1 &
-				disown
+		        # screen에서 실행
+				screen -dmS $SCREEN_NAME bash -c "java -jar $DEPLOY_DIR/$JAR_NAME >> $DEPLOY_DIR/app.log 2>&1"
 				'''
 			}
 		}
