@@ -22,8 +22,8 @@ pipeline {
 		
 		stage('Deploy') {
 			steps {
-				sh """
-				PID=\$(lsof -t -i:\$PORT)
+				sh '''
+				PID=$(lsof -t -i:$PORT)
 				if [ -n "$PID" ]; then
 				    kill $PID
 				    sleep 5
@@ -31,10 +31,10 @@ pipeline {
 				        kill -9 $PID
 				    fi
 				fi
-				mkdir -p \$DEPLOY_DIR
-				cp build/libs/\$JAR_NAME \$DEPLOY_DIR/
+				mkdir -p $DEPLOY_DIR
+				cp build/libs/$JAR_NAME $DEPLOY_DIR/
 				nohup java -jar $DEPLOY_DIR/$JAR_NAME >> $DEPLOY_DIR/app.log 2>&1 &
-				"""
+				'''
 			}
 		}
 		
