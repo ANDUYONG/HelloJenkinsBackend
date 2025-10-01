@@ -23,18 +23,24 @@ pipeline {
 		stage('Deploy') {
 			steps {
 				sh '''
-				PID=$(lsof -t -i:$PORT || true)  # lsof 실패해도 무시
-				if [ -n "$PID" ]; then
-				    kill $PID || true
-				    sleep 5
-				    if ps -p $PID > /dev/null; then
-				        kill -9 $PID || true
-				    fi
-				fi
-				mkdir -p $DEPLOY_DIR
-				cp build/libs/$JAR_NAME $DEPLOY_DIR/
-				nohup java -jar $DEPLOY_DIR/$JAR_NAME >> $DEPLOY_DIR/app.log 2>&1 & 
-				disown
+		        # 포트 확인 후 기존 프로세스 종료
+		        PID=\$(lsof -t -i:\$PORT || true)
+		        if [ -n "\$PID" ]; then
+		            kill \$PID || true
+		            sleep 5
+		            if ps -p \$PID > /dev/null; then
+		                kill -9 \$PID || true
+		            fi
+		        fi
+		
+		        # 배포 디렉토리 생성
+		        mkdir -p \$DEPLOY_DIR
+		
+		        # JAR 복사
+		        cp build/libs/\$JAR_NAME \$DEPLOY_DIR/
+		
+		        # 백그라운드에서 안전하게 실행 (setsid 사용)
+		        setsid java -jar \$DEPLOY_DIR/\$JAR_NAME >> \$DEPLOY_DIR/app.log 2>&1 &
 				'''
 			}
 		}
