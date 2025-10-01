@@ -5,6 +5,7 @@ pipeline {
 		DEPLOY_DIR = "/Users/duyong/프로젝트/HelloJenkins/deploy/backend"
 		JAR_NAME = "backend-0.0.1-SNAPSHOT.jar"
 		SCREEN_NAME="HelloJenkinsBackend"
+		PLIST_FILE = "${env.HOME}/Library/LaunchAgents/com.duyong.hello-jenkins.plist"
 		PORT = 8090
 	}
 	
@@ -24,24 +25,16 @@ pipeline {
 		stage('Deploy') {
 			steps {
 				sh '''
-		        # 포트 확인 후 기존 프로세스 종료
-		        PID=\$(lsof -t -i:\$PORT || true)
-		        if [ -n "\$PID" ]; then
-		            kill \$PID || true
-		            sleep 5
-		            if ps -p \$PID > /dev/null; then
-		                kill -9 \$PID || true
-		            fi
-		        fi
-		
-		        # 배포 디렉토리 생성
-		        mkdir -p \$DEPLOY_DIR
-		
-		        # JAR 복사
-		        cp build/libs/\$JAR_NAME \$DEPLOY_DIR/
-		
-		        # screen에서 실행
-				screen -dmS $SCREEN_NAME bash -c "java -jar $DEPLOY_DIR/$JAR_NAME >> $DEPLOY_DIR/app.log 2>&1"
+		        # 기존 애플리케이션 중지
+	            launchctl unload $PLIST_FILE || true
+	
+	            # JAR 파일 복사
+	            mkdir -p $DEPLOY_DIR
+	            cp build/libs/$JAR_NAME $DEPLOY_DIR/
+	
+	            # LaunchAgent 재시작
+	            launchctl load $PLIST_FILE
+	            launchctl start com.duyong.hello-jenkins || true
 				'''
 			}
 		}
