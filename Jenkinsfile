@@ -33,7 +33,8 @@ pipeline {
 				fi
 				mkdir -p $DEPLOY_DIR
 				cp build/libs/$JAR_NAME $DEPLOY_DIR/
-				nohup java -jar $DEPLOY_DIR/$JAR_NAME >> $DEPLOY_DIR/app.log 2>&1 &
+				nohup java -jar $DEPLOY_DIR/$JAR_NAME >> $DEPLOY_DIR/app.log 2>&1 & 
+				disown
 				'''
 			}
 		}
