@@ -23,12 +23,12 @@ pipeline {
 		stage('Deploy') {
 			steps {
 				sh '''
-				PID=$(lsof -t -i:$PORT)
+				PID=$(lsof -t -i:$PORT || true)  # lsof 실패해도 무시
 				if [ -n "$PID" ]; then
-				    kill $PID
+				    kill $PID || true
 				    sleep 5
 				    if ps -p $PID > /dev/null; then
-				        kill -9 $PID
+				        kill -9 $PID || true
 				    fi
 				fi
 				mkdir -p $DEPLOY_DIR
