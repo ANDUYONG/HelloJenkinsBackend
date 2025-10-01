@@ -2,7 +2,7 @@ pipeline {
 	agent any
 	
 	environment {
-		DEPLOY_DIR = "/Users/duyong/deploy/backend"
+		DEPLOY_DIR = "/Users/duyong/프로젝트/deploy/backend"
 		JAR_NAME = "backend-0.0.1-SNAPSHOT.jar"
 		PORT = 8090
 	}
