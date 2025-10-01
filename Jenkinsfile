@@ -40,7 +40,7 @@ pipeline {
 		        cp build/libs/\$JAR_NAME \$DEPLOY_DIR/
 		
 		        # 백그라운드에서 안전하게 실행 (setsid 사용)
-		        setsid java -jar \$DEPLOY_DIR/\$JAR_NAME >> \$DEPLOY_DIR/app.log 2>&1 &
+		        java -jar \$DEPLOY_DIR/\$JAR_NAME >> \$DEPLOY_DIR/app.log 2>&1 &
 				'''
 			}
 		}
