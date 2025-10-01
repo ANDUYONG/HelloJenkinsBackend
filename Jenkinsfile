@@ -25,7 +25,7 @@ pipeline {
 		stage('Deploy') {
 			steps {
 				sh '''
-		        # 기존 애플리케이션 중지
+		        # 기존 애플리케이션 중지 
 	            launchctl unload $PLIST_FILE || true
 	
 	            # JAR 파일 복사
