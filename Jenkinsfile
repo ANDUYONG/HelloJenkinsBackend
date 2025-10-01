@@ -6,6 +6,7 @@ pipeline {
 		JAR_NAME = "backend-0.0.1-SNAPSHOT.jar"
 		SCREEN_NAME="HelloJenkinsBackend"
 		PLIST_FILE = "${env.HOME}/Library/LaunchAgents/com.duyong.hello-jenkins.plist"
+		GITHUB_TOKEN = credentials('github-token')
 		PORT = 8090
 	}
 	
