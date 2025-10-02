@@ -27,23 +27,23 @@ import com.hellojenkins.app.github.dto.GitTrreDTO.TreeNode;
 
 @Service
 public class GitHubService {
-	
+
    private final GitHubProperties properties;
    private final RestTemplate restTemplate = new RestTemplate();
    private final ObjectMapper mapper = new ObjectMapper();
-   
+
    public GitHubService(GitHubProperties properties) {
 	   this.properties = properties;
 	   mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
    }
-   
+
    private HttpHeaders getHeaders() {
 	   HttpHeaders headers = new HttpHeaders();
 	   headers.set("Authorization", "token " + properties.getToken());
 	   headers.set("Accept", "application/vnd.github.v3+json");
 	   return headers;
    }
-   
+
    // 최신 커밋 SHA조회
    public GitCommitSummaryDTO getLatestCommitSha(String branch) {
        String url = String.format("%s/repos/%s/%s/commits/%s",
@@ -64,8 +64,8 @@ public class GitHubService {
            throw new RuntimeException("GitHub commit JSON 파싱 실패", e);
        }
    }
-   
-   
+
+
    // 특정 커밋 기준 파일 목록 조회
    public GitTrreDTO getFilesAtCommit() {
        String url = String.format("%s/repos/%s/%s/git/trees/%s?recursive=1",
@@ -85,7 +85,7 @@ public class GitHubService {
            throw new RuntimeException("GitHub tree JSON 파싱 실패", e);
        }
    }
-   
+
    // 개별 파일 조회
    public GitFileContentDTO getFileContent(String filePath, String branch) {
        String url = String.format("%s/repos/%s/%s/contents/%s?ref=%s",
@@ -104,7 +104,7 @@ public class GitHubService {
            throw new RuntimeException("GitHub file JSON 파싱 실패", e);
        }
    }
-   
+
    private String getMainBranchTreeSha() {
 	    String url = String.format("%s/repos/%s/%s/branches/test",
 	            properties.getApiUrl(),
@@ -121,16 +121,16 @@ public class GitHubService {
 	        throw new RuntimeException("브랜치 JSON 파싱 실패", e);
 	    }
 	}
-   
+
    private List<TreeNode> getTreeNode(List<TreeNode> allNodes, String parentPath) {
-	   Set<String> addedPaths = new HashSet<>(); // 중복 방지용 
-	   
+	   Set<String> addedPaths = new HashSet<>(); // 중복 방지용
+
 	   // DFS 알고리즘 적용
 	   // 파일 하이라키 구조의 데이터를 표현하기 위함.
 	   List<TreeNode> children = allNodes.stream()
 	            .filter(node -> {
 	            	String nodeParent = getParentPath(node.getPath());
-	            	if(parentPath.length() > 0) {	            		
+	            	if(parentPath.length() > 0) {
 	            		return nodeParent.equals(parentPath);
 	            	} else {
 	            		// 최상위 노드일 때, 이미 다른 부모로 추가된 노드면 제외
@@ -140,15 +140,15 @@ public class GitHubService {
 	            .map(node -> {
 	            	node.setFilePath(getParentPath(node.getPath()));
 	            	node.setFileName(getFileName(node.getPath()));
-	            	
+
 	            	addedPaths.add(node.getPath()); // 이미 사용된 경로 기록
-	            	
+
 	                if ("tree".equals(node.getType())) {
 	                    node.setFile(false);
-	                    
+
 	                    // 폴더 일 경우, 재귀적으로 데이터를 추가한다.
 	                    node.setChildren(this.getTreeNode(allNodes, node.getPath())); // 바로 아래 자식만
-	                    
+
 	                } else {
 	                    node.setFile(true);
 	                }
@@ -161,38 +161,38 @@ public class GitHubService {
 	            .toList();
 	    return children;
 	}
-   
+
    public int commitAndPush(List<GitFileContentDTO> list) {
 	    try {
-	    	
+
 	    	for (GitFileContentDTO dto : list) {
 	    		// GitHub API URL
 	    		String url = String.format(
-	    				"%s/repos/%s/%s/contents/%s", 
-	    				properties.getApiUrl(), 
-	    				properties.getOwner(), 
+	    				"%s/repos/%s/%s/contents/%s",
+	    				properties.getApiUrl(),
+	    				properties.getOwner(),
 	    				properties.getRepo(),
 	    				dto.getPath()
 	    				);
-	    		
+
 	    		GitFileContentDTO latest = this.getFileContent(dto.getPath(), "test");
 	    		String message = dto.getMessage();
 	    		String encodedData = dto.getEncodedData();
-	    		
+
 	    		// Request body
 	    		Map<String, Object> body = new HashMap<>();
 	    		body.put("message", message);
 	    		body.put("content", encodedData);
 	    		body.put("branch", "test");  // 파라미터로 브랜치 지정
 	    		body.put("sha", latest.getSha());  // 수정일 경우 필요
-	    		
+
 	    		// Headers
 	    		HttpHeaders headers = new HttpHeaders();
 	    		headers.setContentType(MediaType.APPLICATION_JSON);
 	    		headers.setBearerAuth(properties.getToken());  // 토큰 사용
-	    		
+
 	    		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-	    		
+
 	    		// API 호출
 	    		ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PUT, request, String.class);
 	    		System.out.println("Response for " + dto.getPath() + ": " + response.getBody());
@@ -205,7 +205,7 @@ public class GitHubService {
 	    return list.size();
 	}
 
-   
+
    private String getParentPath(String path) {
 	    int lastIndex = path.lastIndexOf('/');
 	    return lastIndex == -1 ? "" : path.substring(0, lastIndex);

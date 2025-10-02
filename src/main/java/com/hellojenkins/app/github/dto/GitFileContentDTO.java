@@ -31,13 +31,13 @@ public class GitFileContentDTO {
 
     @JsonProperty("download_url")
     private String downloadUrl;
-    
+
 	@JsonProperty("decodedData")
     private String decodedData;
-	
+
 	@JsonProperty("encodedData")
     private String encodedData;
-	
+
 	@JsonProperty("message")
     private String message;
 
@@ -144,7 +144,7 @@ public class GitFileContentDTO {
 	public void setMessage(String message) {
 		this.message = message;
 	}
-	
-	
+
+
 
 }

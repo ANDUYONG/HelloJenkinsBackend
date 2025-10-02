@@ -15,11 +15,11 @@ import com.hellojenkins.app.genkins.websocket.JenkinsWebSocketHandler;
 @RequestMapping("/api/jenkins")
 public class JenkinsController {
 	private final JenkinsWebSocketHandler webSocketHandler;
-	
+
 	public JenkinsController(JenkinsWebSocketHandler webSocketHandler) {
 		this.webSocketHandler = webSocketHandler;
 	}
-	
+
 	@PostMapping("/event")
 	public ResponseEntity<Void> receiveJenkinsEvent(@RequestBody JenkinsEvent event) {
 		// event: jobName, buildNunber, stage, status, logs
@@ -33,8 +33,8 @@ public class JenkinsController {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		
+
+
 		return ResponseEntity.ok().build();
 	}
 }

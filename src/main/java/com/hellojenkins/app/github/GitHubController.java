@@ -17,17 +17,17 @@ import com.hellojenkins.app.github.dto.GitTrreDTO;
 @RequestMapping("/api/github")
 public class GitHubController {
 	private final GitHubService gitHubService;
-	
+
 	public GitHubController(GitHubService gitHubService) {
 		this.gitHubService = gitHubService;
 	}
-	
+
 	// http://localhost:8080/github/latestCommit?branch=main
 	@GetMapping("/latestCommit")
 	public GitCommitSummaryDTO latestCommit(@RequestParam(name = "branch", defaultValue = "main") String branch) {
 		return gitHubService.getLatestCommitSha(branch);
 	}
-	
+
 	// http://localhost:8080/github/files?commitSha=e0303450fb3a917717123768bcc2007379b31fe9
     @GetMapping("/files")
     public GitTrreDTO files() {
@@ -40,7 +40,7 @@ public class GitHubController {
                               @RequestParam(name = "branch", defaultValue = "main") String branch) {
         return gitHubService.getFileContent(filePath, branch);
     }
-    
+
     @PostMapping("/commitAndPush")
     public int commitAndPush(@RequestBody List<GitFileContentDTO> list) {
     	int result = gitHubService.commitAndPush(list);

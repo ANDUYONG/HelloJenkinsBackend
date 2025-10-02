@@ -26,7 +26,7 @@ public class GitHubContentsListDTO {
     private String type;
 	@JsonProperty("_links")
     private Links links;
-	
+
 	@Data
     @JsonIgnoreProperties(ignoreUnknown = true)
 	public class Links {

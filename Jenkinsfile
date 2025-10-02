@@ -7,7 +7,8 @@ pipeline {
 		SCREEN_NAME="HelloJenkinsBackend"
 		PLIST_FILE = "${env.HOME}/Library/LaunchAgents/com.duyong.hello-jenkins.plist"
 		GITHUB_TOKEN = credentials('github-token')
-		PORT = 8090
+		PORT = 8091
+		// PORT = 8090
 	}
 	
 	stages {

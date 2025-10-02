@@ -32,12 +32,12 @@ public class GitTrreDTO {
         private String sha;
     	@JsonProperty("size")
         private Long size; // 일부 타입에서는 size가 없을 수 있음
-    	
+
     	private String fileName;
     	private String filePath;
     	private boolean isFile;
     	private List<TreeNode> children;
-    	
+
 		public String getPath() {
 			return path;
 		}
@@ -92,8 +92,8 @@ public class GitTrreDTO {
 		public void setChildren(List<TreeNode> children) {
 			this.children = children;
 		}
-    	
-    	
+
+
     }
 
 	public String getSha() {
@@ -120,6 +120,6 @@ public class GitTrreDTO {
 		this.tree = tree;
 	}
 
-    
-    
+
+
 }

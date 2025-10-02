@@ -11,22 +11,22 @@ import lombok.Data;
 public class GitCommitSummaryDTO {
 	@JsonProperty("sha")
 	private String sha;
-	
+
 	@JsonProperty("node_id")
 	private String nodeId;
-	
+
 	@JsonProperty("commit")
     private Commit commit;
-	
+
 	@JsonProperty("url")
     private String url;
-    
+
     @JsonProperty("html_url")
     private String htmlUrl;
-    
+
     @JsonProperty("author")
     private Author author;
-    
+
     @JsonProperty("committer")
     private Author committer;
 }
