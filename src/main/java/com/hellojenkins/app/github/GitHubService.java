@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -16,9 +17,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.hellojenkins.app.github.dto.GitBranchDTO;
 import com.hellojenkins.app.github.dto.GitCommitSummaryDTO;
 import com.hellojenkins.app.github.dto.GitFileContentDTO;
 import com.hellojenkins.app.github.dto.GitTrreDTO;
@@ -67,12 +70,12 @@ public class GitHubService {
 
 
    // 특정 커밋 기준 파일 목록 조회
-   public GitTrreDTO getFilesAtCommit() {
+   public GitTrreDTO getFilesAtCommit(String branch) {
        String url = String.format("%s/repos/%s/%s/git/trees/%s?recursive=1",
                properties.getApiUrl(),
                properties.getOwner(),
                properties.getRepo(),
-               this.getMainBranchTreeSha());
+               this.getMainBranchTreeSha(branch));
 
        HttpEntity<String> entity = new HttpEntity<>(this.getHeaders());
        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
@@ -84,6 +87,56 @@ public class GitHubService {
        } catch (JsonProcessingException e) {
            throw new RuntimeException("GitHub tree JSON 파싱 실패", e);
        }
+   }
+   
+   // 브랜치 목록 조회 -> feature
+   public List<GitBranchDTO> branches() {
+	   String url = String.format("%s/repos/%s/%s/branches",
+			   properties.getApiUrl(),
+               properties.getOwner(),
+               properties.getRepo());
+
+       HttpEntity<String> entity = new HttpEntity<>(this.getHeaders());
+       ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+       try {
+    	   List<GitBranchDTO> result = mapper.readValue(response.getBody(), new TypeReference<List<GitBranchDTO>>() {});
+           return result.stream()
+        		    .filter(x -> x.getName() != null && x.getName().startsWith("feature/"))
+        		   	.collect(Collectors.toList());
+       } catch (JsonProcessingException e) {
+           throw new RuntimeException("GitHub tree JSON 파싱 실패", e);
+       }
+   }
+   
+   public String createBranch(String newBranchName) {
+	   // 1. base branch의 최 sha값 가져오
+       String refUrl = String.format("%s/repos/%s/%s/git/ref/heads/feature", 
+    		   properties.getApiUrl(),
+    		   properties.getOwner(), 
+    		   properties.getRepo());
+       ResponseEntity<Map> refResponse = restTemplate.exchange(refUrl, HttpMethod.GET, new HttpEntity<>(getHeaders()), Map.class);
+
+       String sha = (String) ((Map<String, Object>) refResponse.getBody().get("object")).get("sha");
+
+       // 2. 새 브랜치 생성
+       String createUrl = String.format("%s/repos/%s/%s/git/refs", 
+    		   properties.getApiUrl(),
+    		   properties.getOwner(), 
+    		   properties.getRepo());
+
+       Map<String, String> body = new HashMap<>();
+       body.put("ref", "refs/heads/feature/" + newBranchName);
+       body.put("sha", sha);
+
+       ResponseEntity<String> createResponse = restTemplate.exchange(
+               createUrl,
+               HttpMethod.POST,
+               new HttpEntity<>(body, getHeaders()),
+               String.class
+       );
+
+       return createResponse.getBody();
    }
 
    // 개별 파일 조회
@@ -105,11 +158,12 @@ public class GitHubService {
        }
    }
 
-   private String getMainBranchTreeSha() {
-	    String url = String.format("%s/repos/%s/%s/branches/test",
+   private String getMainBranchTreeSha(String branch) {
+	    String url = String.format("%s/repos/%s/%s/branches/%s",
 	            properties.getApiUrl(),
 	            properties.getOwner(),
-	            properties.getRepo());
+	            properties.getRepo(),
+	            branch);
 
 	    HttpEntity<String> entity = new HttpEntity<>(this.getHeaders());
 	    ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
@@ -162,7 +216,7 @@ public class GitHubService {
 	    return children;
 	}
 
-   public int commitAndPush(List<GitFileContentDTO> list) {
+   public int commitAndPush(List<GitFileContentDTO> list, String branch) {
 	    try {
 
 	    	for (GitFileContentDTO dto : list) {
@@ -175,7 +229,7 @@ public class GitHubService {
 	    				dto.getPath()
 	    				);
 
-	    		GitFileContentDTO latest = this.getFileContent(dto.getPath(), "test");
+	    		GitFileContentDTO latest = this.getFileContent(dto.getPath(), branch);
 	    		String message = dto.getMessage();
 	    		String encodedData = dto.getEncodedData();
 
@@ -183,7 +237,7 @@ public class GitHubService {
 	    		Map<String, Object> body = new HashMap<>();
 	    		body.put("message", message);
 	    		body.put("content", encodedData);
-	    		body.put("branch", "test");  // 파라미터로 브랜치 지정
+	    		body.put("branch", branch);  // 파라미터로 브랜치 지정
 	    		body.put("sha", latest.getSha());  // 수정일 경우 필요
 
 	    		// Headers
