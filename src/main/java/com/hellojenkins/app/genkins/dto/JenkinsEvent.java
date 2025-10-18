@@ -10,6 +10,8 @@ import lombok.Data;
 public class JenkinsEvent {
 	@JsonProperty("jobName")
 	private String jobName;
+	@JsonProperty("branch")
+	private String branch;
 	@JsonProperty("buildNumber")
 	private String buildNumber;
 	@JsonProperty("stage")

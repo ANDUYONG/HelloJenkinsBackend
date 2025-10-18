@@ -18,5 +18,7 @@ public class JenkinsWebSocketConfig implements WebSocketConfigurer {
 	public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
 		registry.addHandler(jenkinsWebSocketHandler, "/ws/jenkins")
 			.setAllowedOriginPatterns("*");
+		registry.addHandler(jenkinsWebSocketHandler, "/ws/overview")
+			.setAllowedOriginPatterns("*");
 	}
 }
