@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -26,17 +27,20 @@ import com.hellojenkins.app.github.dto.GitCommitSummaryDTO;
 import com.hellojenkins.app.github.dto.GitFileContentDTO;
 import com.hellojenkins.app.github.dto.GitTrreDTO;
 import com.hellojenkins.app.github.dto.GitTrreDTO.TreeNode;
+import com.hellojenkins.app.slack.SlackService;
 
 
 @Service
 public class GitHubService {
 
    private final GitHubProperties properties;
+   private final SlackService slackService;
    private final RestTemplate restTemplate = new RestTemplate();
    private final ObjectMapper mapper = new ObjectMapper();
 
-   public GitHubService(GitHubProperties properties) {
+   public GitHubService(GitHubProperties properties, SlackService slackService) {
 	   this.properties = properties;
+	   this.slackService = slackService;
 	   mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
    }
 
@@ -46,6 +50,101 @@ public class GitHubService {
 	   headers.set("Accept", "application/vnd.github.v3+json");
 	   return headers;
    }
+   
+	// -----------------------------------------------------------
+	// 핵심 로직: 순차적 강제 덮어쓰기
+	// -----------------------------------------------------------
+	
+	public String sequentialOverwrite(List<String> branchNames, String baseBranch) {
+	    String baseSha = null; // baseSha는 첫 번째 브랜치 병합 후 업데이트되어야 함.
+	
+	    for (String headBranch : branchNames) {
+	        try {
+	            // 1. Head 브랜치의 최신 커밋 SHA 가져오기
+	            String headSha = this.getBranchHeadSha(headBranch);
+	            
+	            // 2. Base 브랜치에 강제 덮어쓰기 (force push 효과)
+	            this.overwriteBaseBranch(headBranch, baseBranch, headSha);
+	
+	        } catch (Exception e) {
+	            // 특정 브랜치 덮어쓰기 실패 시 예외 처리
+	            throw new RuntimeException("Error overwriting " + baseBranch + " with " + headBranch + ": " + e.getMessage(), e);
+	        }
+	    }
+	    
+	    String commitUrl = String.format(
+	    		"%s/%s/%s/tree/%s", 
+	    		properties.getBaseUrl(),
+	    		properties.getOwner(),
+	    		properties.getRepo(),
+	    		baseBranch
+		); 
+	    String msg = baseBranch.equals("dev") ? "feature > dev 병합완료" : "dev > main 병합완료"; 
+	    slackService.sendFromGithub(properties.getRepo(), properties.getOwner(), msg, commitUrl, baseBranch);
+	    return "All branches successfully overwrote " + baseBranch;
+	}
+	
+	/**
+	 * 1. 특정 브랜치의 HEAD 커밋 SHA를 가져옵니다.
+	 * GET /repos/{owner}/{repo}/git/refs/heads/{branch}
+	 */
+	private String getBranchHeadSha(String branchName) {
+	    String url = String.format(
+	        "%s/repos/%s/%s/git/refs/heads/%s", 
+	        properties.getApiUrl(), 
+	        properties.getOwner(), 
+	        properties.getRepo(), 
+	        branchName
+	    );
+	
+	    HttpEntity<Void> entity = new HttpEntity<>(getHeaders());
+	    
+	    ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+	    
+	    if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+	        Map<String, String> object = (Map<String, String>) response.getBody().get("object");
+	        return object.get("sha"); // 커밋 SHA 반환
+	    }
+	    throw new RuntimeException("Failed to get SHA for branch: " + branchName);
+	}
+	
+	/**
+	 * 2. Base 브랜치를 Head 브랜치의 SHA로 강제 업데이트합니다 (덮어쓰기).
+	 * PUT /repos/{owner}/{repo}/git/refs/heads/{baseBranch}
+	 */
+	private void overwriteBaseBranch(String headBranch, String baseBranch, String headSha) {
+	    String url = String.format(
+	        "%s/repos/%s/%s/git/refs/heads/%s", 
+	        properties.getApiUrl(), 
+	        properties.getOwner(), 
+	        properties.getRepo(), 
+	        baseBranch
+	    );
+	
+	    // 요청 바디: 새로운 SHA와 강제 푸시 옵션
+	    Map<String, Object> overwriteBody = Map.of(
+	        "sha", headSha,
+	        "force", true // 이 부분이 git push --force와 동일한 역할을 합니다.
+	    );
+	
+	    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(overwriteBody, getHeaders());
+	
+	    ResponseEntity<Void> response = restTemplate.exchange(
+	        url, 
+	        HttpMethod.PUT, 
+	        entity, 
+	        Void.class // 응답 본문은 필요 없음
+	    );
+	    
+	    if (!response.getStatusCode().is2xxSuccessful()) {
+	        throw new RuntimeException(String.format(
+	            "Force overwrite failed (Status: %s) while merging %s into %s.", 
+	            response.getStatusCode(), headBranch, baseBranch
+	        ));
+	    }
+	    System.out.printf("Successfully overwrote %s with %s's HEAD (%s).\n", baseBranch, headBranch, headSha);
+	}
+   
 
    // 최신 커밋 SHA조회
    public GitCommitSummaryDTO getLatestCommitSha(String branch) {
@@ -218,7 +317,6 @@ public class GitHubService {
 
    public int commitAndPush(List<GitFileContentDTO> list, String branch) {
 	    try {
-
 	    	for (GitFileContentDTO dto : list) {
 	    		// GitHub API URL
 	    		String url = String.format(
@@ -230,12 +328,12 @@ public class GitHubService {
 	    				);
 
 	    		GitFileContentDTO latest = this.getFileContent(dto.getPath(), branch);
-	    		String message = dto.getMessage();
+	    		String commitMsg = dto.getMessage();
 	    		String encodedData = dto.getEncodedData();
 
 	    		// Request body
 	    		Map<String, Object> body = new HashMap<>();
-	    		body.put("message", message);
+	    		body.put("message", commitMsg);
 	    		body.put("content", encodedData);
 	    		body.put("branch", branch);  // 파라미터로 브랜치 지정
 	    		body.put("sha", latest.getSha());  // 수정일 경우 필요
@@ -250,6 +348,15 @@ public class GitHubService {
 	    		// API 호출
 	    		ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.PUT, request, String.class);
 	    		System.out.println("Response for " + dto.getPath() + ": " + response.getBody());
+	    		
+	    	    String commitUrl = String.format(
+	    	    		"%s/%s/%s/tree/%s", 
+	    	    		properties.getBaseUrl(),
+	    	    		properties.getOwner(),
+	    	    		properties.getRepo(),
+	    	    		branch
+	    		); 
+	    	    slackService.sendFromGithub(properties.getRepo(), properties.getOwner(), commitMsg, commitUrl, branch);
 	    	}
 	    } catch(Exception e) {
 	    	System.out.println(e);
@@ -258,7 +365,6 @@ public class GitHubService {
 
 	    return list.size();
 	}
-
 
    private String getParentPath(String path) {
 	    int lastIndex = path.lastIndexOf('/');

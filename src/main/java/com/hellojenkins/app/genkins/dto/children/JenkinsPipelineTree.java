@@ -16,4 +16,22 @@ public class JenkinsPipelineTree {
 
     @JsonProperty("data")
     private JenkinsPipelineData data;
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public JenkinsPipelineData getData() {
+		return data;
+	}
+
+	public void setData(JenkinsPipelineData data) {
+		this.data = data;
+	}
+    
+    
 }

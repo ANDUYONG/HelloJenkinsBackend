@@ -25,18 +25,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hellojenkins.app.genkins.dto.JenkinsEvent;
 import com.hellojenkins.app.genkins.dto.JenkinsExecutionNode;
 import com.hellojenkins.app.genkins.dto.JenkinsOverview;
+import com.hellojenkins.app.genkins.dto.children.JenkinsStage;
 import com.hellojenkins.app.genkins.dto.children.JenkinsStageFlowNode;
 import com.hellojenkins.app.genkins.websocket.JenkinsWebSocketHandler;
+import com.hellojenkins.app.slack.SlackService;
 
 @RestController
 @RequestMapping("/api/jenkins")
 public class JenkinsController {
 	private final JenkinsWebSocketHandler webSocketHandler;
 	private final JenkinsProperties properties;
+	private final SlackService slackService;
 
-	public JenkinsController(JenkinsWebSocketHandler webSocketHandler, JenkinsProperties properties) {
+	public JenkinsController(JenkinsWebSocketHandler webSocketHandler, JenkinsProperties properties, SlackService slackService) {
 		this.webSocketHandler = webSocketHandler;
 		this.properties = properties;
+		this.slackService = slackService;
 	}
 	
     @GetMapping("/overview/{buildNumber}/{node}")
@@ -48,13 +52,13 @@ public class JenkinsController {
 		try {
 			// 1. branchName을 1차 인코딩 (feature/test1 -> feature%2Ftest1)
 			String encodedBranchName = URLEncoder.encode(branchName, StandardCharsets.UTF_8.toString());
-			String doubleEncodedBranchName = URLEncoder.encode(encodedBranchName, StandardCharsets.UTF_8.toString());
+//			String doubleEncodedBranchName = URLEncoder.encode(encodedBranchName, StandardCharsets.UTF_8.toString());
 			// 2. 1차 인코딩된 문자열을 다시 2차 인코딩 (feature%2Ftest1 -> feature%252Ftest1)
 			
 			String url = String.format(
 					"%s%s/%s/execution/node/%s/wfapi/describe", 
 					properties.getBaseUrl(), 
-					doubleEncodedBranchName,
+					encodedBranchName,
 					buildNumber,
 					node);
 			
@@ -76,6 +80,37 @@ public class JenkinsController {
 			HttpHeaders responseHeaders = new HttpHeaders();
 			responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 			return new ResponseEntity<>(strList, responseHeaders, HttpStatus.OK);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.toString());
+		}
+    }
+    
+    @GetMapping("/overview/{buildNumber}/total")
+    public ResponseEntity<?> getTotalLog(
+    		@RequestParam(name = "branchName", defaultValue = "main") String branchName,
+    		@PathVariable("buildNumber") String buildNumber
+		) {
+		try {
+			// 1. branchName을 1차 인코딩 (feature/test1 -> feature%2Ftest1)
+			String encodedBranchName = URLEncoder.encode(branchName, StandardCharsets.UTF_8.toString());
+			String doubleEncodedBranchName = URLEncoder.encode(encodedBranchName, StandardCharsets.UTF_8.toString());
+			// 2. 1차 인코딩된 문자열을 다시 2차 인코딩 (feature%2Ftest1 -> feature%252Ftest1)
+			
+			String url = String.format(
+					"%s%s/%s/logText/progressiveText",
+					properties.getBaseUrl(), 
+					doubleEncodedBranchName,
+					buildNumber);
+			
+			ResponseEntity<String> response = this.getResponseData(url); 
+			String text = response.getBody();
+	        
+			// X-Frame-Options 제거
+			HttpHeaders responseHeaders = new HttpHeaders();
+			responseHeaders.setContentType(MediaType.TEXT_PLAIN);
+			return new ResponseEntity<>(text, responseHeaders, HttpStatus.OK);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -107,8 +142,26 @@ public class JenkinsController {
 		String json;
 		try {
 			json = new ObjectMapper().writeValueAsString(event);
-
 			// 프론트로 실시간 전송
+			
+			// Slack 알림 메세지 보내기 
+			String jobName = event.getJobName();
+			String status = event.getStatus();
+			String branchName = event.getBranchName();
+			int buildNumber = event.getBuildNumber();
+			
+			List<JenkinsStage> nodes = event.getTree().getData().getStages();
+			JenkinsStage lastNode = nodes.get(nodes.size()-1);
+			
+			
+			if(lastNode.getName().equals("Post Actions") && !status.equals("FAILURE")) {
+				// 1. 브랜치 성공: "Post Actions" Stage일 경우, 알림 메세지
+				slackService.sendFromJenkins(jobName, branchName, buildNumber, status);
+			} else if(status.equals("FAILURE") && !lastNode.getName().equals("Post Actions")) {
+				// 2. 브랜치 실패: stats: failure , 알림 메세
+				slackService.sendFromJenkins(jobName, branchName, buildNumber, status);
+			}
+			
 			webSocketHandler.sendOverviewMessage(json);
 		} catch (JsonProcessingException e) {
 			// TODO Auto-generated catch block

@@ -18,5 +18,24 @@ public class JenkinsPipelineData {
 
     @JsonProperty("stages")
     private List<JenkinsStage> stages;
+
+	public Boolean getComplete() {
+		return complete;
+	}
+
+	public void setComplete(Boolean complete) {
+		this.complete = complete;
+	}
+
+	public List<JenkinsStage> getStages() {
+		return stages;
+	}
+
+	public void setStages(List<JenkinsStage> stages) {
+		this.stages = stages;
+	}
+    
+    
+    
 }
 
