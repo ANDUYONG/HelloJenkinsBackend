@@ -5,7 +5,6 @@ pipeline {
 		// Docker 이미지 및 컨테이너 관리용 변수
 		DOCKER_IMAGE_NAME = "hello-jenkins-backend:${env.BUILD_ID}" // 빌드 번호를 태그로 사용
 		CONTAINER_NAME = "hello-jenkins-backend-container"
-		GITHUB_TOKEN = credentials('github-token')
 		PORT = 8092 // 외부/내부 포트
 	}
 	
