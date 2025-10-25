@@ -36,5 +36,5 @@ COPY --from=builder /app/build/libs/*.jar $JAR_FILE
 EXPOSE $PORT
 
 # 컨테이너 실행 시 동작할 명령어
-ENTRYPOINT ["java", "-jar", "/hello-jenkins-backend.jar", "--server.port=${PORT}"]
+ENTRYPOINT ["java", "-jar", "/app.jar", "--server.port=${PORT}"]
 # ENTRYPOINT에서 실행 시 포트도 환경 변수로 설정되도록 추가했습니다.
