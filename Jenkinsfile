@@ -29,7 +29,7 @@ pipeline {
 				script {
 					// Dockerfile과 빌드된 JAR 파일을 포함하여 Docker 이미지 빌드
 					// -t: 태그 설정
-					// .: 현재 디렉토리의 Dockerfile 사용
+					// .: 현재 디렉토리의 Dockerfile 사용 
 					sh "docker build -t ${DOCKER_IMAGE_NAME} ."
 					
 					// (선택 사항) 최신 태그도 함께 지정
