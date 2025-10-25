@@ -45,6 +45,9 @@ pipeline {
 				docker stop ${CONTAINER_NAME} || true
 				# 중지된 컨테이너를 제거합니다 (에러 발생 시 무시 || true)
 				docker rm ${CONTAINER_NAME} || true
+				
+				# 컨테이너가 완전히 시작될 시간을 잠시 기다립니다 (중요)
+				sleep 5
 
 				echo "--- 새 Docker 컨테이너 실행 ---"
 				# 새로운 이미지로 컨테이너를 실행합니다.
