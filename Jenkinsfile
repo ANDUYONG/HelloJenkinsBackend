@@ -10,7 +10,7 @@ pipeline {
 		JENKINS_BASE_URL = "http://localhost:9090/job/HelloJenkins-Local/job/"
 		JENKINS_TOKEN = "11c033a53b7a6e967c9f1bf2c95cb262aa"
 		JENKINS_USER = "duyong"
-		SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+		SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
 		
 		PORT = 8092 // 외부/내부 포트
 	}
