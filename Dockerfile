@@ -1,6 +1,7 @@
 # --- 1. 빌더 스테이지 (Builder Stage) ---
-# 애플리케이션 빌드 환경 (Gradle + JDK 17)
-FROM gradle:8.8-jdk17-alpine AS builder
+# 기존 alpine 기반 gradle 이미지는 호환성 문제 가능성이 있어, 
+# 더 범용적인 Eclipse Temurin JDK 이미지를 사용합니다.
+FROM eclipse-temurin:17-jdk-focal AS builder
 
 # 작업 디렉토리 설정
 WORKDIR /app
@@ -19,11 +20,11 @@ RUN ./gradlew clean bootJar --no-daemon
 
 # --- 2. 런타임 스테이지 (Runtime Stage) ---
 # 애플리케이션 실행 환경 (경량 JDK 17 JRE)
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre-focal-slim
 
 # 환경 변수 설정
 ENV PORT 8092
-ENV JAR_FILE hello-jenkins-backend.jar
+ENV JAR_FILE app.jar
 # 프로젝트의 build/libs 디렉토리에 생성되는 실제 JAR 파일 이름으로 변경해야 합니다.
 # 예: backend-0.0.1-SNAPSHOT.jar 대신, 배포에 사용할 이름을 지정합니다.
 
