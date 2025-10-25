@@ -29,7 +29,7 @@ ENV JAR_FILE app.jar
 # 예: backend-0.0.1-SNAPSHOT.jar 대신, 배포에 사용할 이름을 지정합니다.
 
 # 빌더 스테이지에서 생성된 JAR 파일 복사
-# build/libs 폴더 아래의 파일 이름을 확인하고 정확히 매칭되도록 수정하세요.
+# build/libs 폴더 아래의 파일 이름을 확인하고 정확히 매칭되도록 수정하세요. 
 COPY --from=builder /app/build/libs/*.jar $JAR_FILE
 
 # 포트 노출 (Docker 컨테이너 내부 포트)
