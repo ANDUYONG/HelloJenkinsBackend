@@ -145,7 +145,7 @@ public class SlackService {
     private void postToSlack(String webHookUrl, SlackNofication payload) {
         try {
             String jsonPayload = mapper.writeValueAsString(payload);
-
+            System.err.println("webHookUrl: " + webHookUrl);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
