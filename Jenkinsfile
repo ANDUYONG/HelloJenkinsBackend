@@ -7,7 +7,7 @@ pipeline {
 		CONTAINER_NAME = "hello-jenkins-backend-container"
 		
 		GITHUB_TOKEN = credentials('github-token')
-		JENKINS_BASE_URL = "http://localhost:9090/job/HelloJenkins-Local/job/"
+		JENKINS_BASE_URL = "http://61.81.49.136:9090/job/HelloJenkins-Local/job/"
 		JENKINS_TOKEN = "11c033a53b7a6e967c9f1bf2c95cb262aa"
 		JENKINS_USER = "duyong"
 		SLACK_WEBHOOK_URL = credentials('slack-webhook-url')

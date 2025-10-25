@@ -40,7 +40,7 @@ public class SlackService {
 
             // Jenkins 빌드 로그 URL 구성
             String buildUrl = String.format(
-                    "http://localhost:%s/api/jenkins/overview/%s/total?branchName=%s",
+                    "http://61.81.49.136:%s/api/jenkins/overview/%s/total?branchName=%s",
                     branchName.equals("main") ? "80" : "8081",
                     buildNumber,
                     branchName
