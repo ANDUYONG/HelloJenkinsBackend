@@ -5,7 +5,13 @@ pipeline {
 		// Docker 이미지 및 컨테이너 관리용 변수
 		DOCKER_IMAGE_NAME = "hello-jenkins-backend:${env.BUILD_ID}" // 빌드 번호를 태그로 사용
 		CONTAINER_NAME = "hello-jenkins-backend-container"
+		
 		GITHUB_TOKEN = credentials('github-token')
+		JENKINS_BASE_URL = "http://localhost:9090/job/HelloJenkins-Local/job/"
+		JENKINS_TOKEN = "11c033a53b7a6e967c9f1bf2c95cb262aa"
+		JENKINS_USER = "duyong"
+		SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+		
 		PORT = 8092 // 외부/내부 포트
 	}
 	
@@ -58,6 +64,10 @@ pipeline {
 				docker run -d \
 				  --name ${CONTAINER_NAME} \
 				  -e GITHUB_TOKEN=${GITHUB_TOKEN} \
+				  -e JENKINS_BASE_URL="${JENKINS_BASE_URL}" \
+				  -e JENKINS_TOKEN="${JENKINS_TOKEN}" \
+				  -e JENKINS_USER="${JENKINS_USER}" \
+				  -e SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL}" \
 				  -p ${PORT}:${PORT} \
 				  ${DOCKER_IMAGE_NAME}
 				
